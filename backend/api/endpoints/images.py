@@ -44,6 +44,31 @@ router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+from fastapi.responses import StreamingResponse
+from pdf2image import convert_from_bytes
+
+@router.post("/generate-artwork-from-pdf")
+async def generate_artwork_from_pdf(file: UploadFile = File(...)):
+    """
+    Generate a 2D packaging artwork image from a technical PDF file.
+    Returns the first page as a PNG image for validation.
+    """
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    pdf_bytes = await file.read()
+    try:
+        images = convert_from_bytes(pdf_bytes)
+        if not images:
+            raise HTTPException(status_code=400, detail="No images found in PDF.")
+        # For now, return the first page as PNG
+        img_byte_arr = io.BytesIO()
+        images[0].save(img_byte_arr, format='PNG')
+        img_byte_arr.seek(0)
+        return StreamingResponse(img_byte_arr, media_type="image/png")
+    except Exception as e:
+        logger.error(f"PDF to image conversion failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process PDF file.")
 
 @router.post("/generate", response_model=ImageGenerationResponse)
 async def generate_image(request: ImageGenerationRequest):
