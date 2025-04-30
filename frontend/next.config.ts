@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '<storage-account-name>.blob.core.windows.net',
+        hostname: 'https://visionaryblob.blob.core.windows.net/',
         port: '',
         pathname: '/**',
       },

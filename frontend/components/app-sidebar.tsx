@@ -27,9 +27,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 // Create section items
 const createItems = [
   {
-    title: "Images",
+    title: "Package generation",
     url: "/",
     icon: ImagePlus,
+  },
+  {
+    title: "Leaflet",
+    url: "/leaflet",
+    icon: PlusCircle,
   },
 ]
 

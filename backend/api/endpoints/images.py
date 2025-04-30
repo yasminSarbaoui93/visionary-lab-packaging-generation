@@ -68,6 +68,65 @@ async def generate_artwork_from_pdf(file: UploadFile = File(...)):
         return StreamingResponse(img_byte_arr, media_type="image/png")
     except Exception as e:
         logger.error(f"PDF to image conversion failed: {e}")
+@router.post("/generate-leaflet-from-docx")
+async def generate_leaflet_from_docx(file: UploadFile = File(...)):
+    """
+    Generate a patient information leaflet PDF from a provided Word (.docx) file.
+    Returns the generated PDF for download.
+    """
+    if file.content_type not in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"]:
+        raise HTTPException(status_code=400, detail="Only Word (.docx) files are supported.")
+
+    try:
+        import tempfile
+        import shutil
+        import os
+        import subprocess
+
+        # Save the uploaded file to a temporary location
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_docx:
+            tmp_docx.write(await file.read())
+            tmp_docx_path = tmp_docx.name
+
+        # Prepare output PDF path
+        tmp_pdf_path = tmp_docx_path.replace(".docx", ".pdf")
+
+        # Use libreoffice for conversion (headless)
+        result = subprocess.run([
+            "libreoffice",
+            "--headless",
+            "--convert-to", "pdf",
+            "--outdir", os.path.dirname(tmp_docx_path),
+            tmp_docx_path
+        ], capture_output=True)
+
+        if result.returncode != 0 or not os.path.exists(tmp_pdf_path):
+            raise HTTPException(status_code=500, detail="Failed to convert DOCX to PDF.")
+
+        # Return the PDF as a streaming response
+        def iterfile():
+            with open(tmp_pdf_path, "rb") as f:
+                yield from f
+
+        from fastapi.responses import StreamingResponse
+        response = StreamingResponse(iterfile(), media_type="application/pdf")
+        response.headers["Content-Disposition"] = f"attachment; filename=leaflet.pdf"
+
+        # Clean up temp files after response is sent
+        import threading
+        def cleanup():
+            try:
+                os.remove(tmp_docx_path)
+                os.remove(tmp_pdf_path)
+            except Exception:
+                pass
+        threading.Thread(target=cleanup).start()
+
+        return response
+
+    except Exception as e:
+        logger.error(f"DOCX to PDF conversion failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process DOCX file.")
         raise HTTPException(status_code=500, detail="Failed to process PDF file.")
 
 @router.post("/generate", response_model=ImageGenerationResponse)
