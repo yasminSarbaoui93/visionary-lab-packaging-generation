@@ -173,3 +173,15 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 videos
+# Ignore customer documents and artwork
+*.pdf
+*.docx
+*.png
+*.jpg
+*.jpeg
+*.tiff
+*.ai
+*.psd
+*.eps
+*.svg
+# Add more patterns as needed for customer data
